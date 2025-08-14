@@ -27,7 +27,6 @@ class _CountdownDialogState extends State<_CountdownDialog> {
   @override
   void initState() {
     super.initState();
-    // tick through 3 -> 2 -> 1 -> GO!, then close
     _t = Timer.periodic(const Duration(milliseconds: 800), (t) {
       if (!mounted) return;
       setState(() => _index++);
@@ -56,7 +55,11 @@ class _CountdownDialogState extends State<_CountdownDialog> {
       child: Center(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 250),
-          transitionBuilder: (child, anim) => ScaleTransition(scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack), child: FadeTransition(opacity: anim, child: child)),
+          transitionBuilder:
+              (child, anim) => ScaleTransition(
+                scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+                child: FadeTransition(opacity: anim, child: child),
+              ),
           child: Container(
             key: ValueKey(text),
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
@@ -68,10 +71,9 @@ class _CountdownDialogState extends State<_CountdownDialog> {
             ),
             child: Text(
               text,
-              style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.5,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.displayMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 1.5),
             ),
           ),
         ),

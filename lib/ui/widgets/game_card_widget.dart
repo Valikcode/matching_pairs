@@ -6,9 +6,9 @@ class GameCardWidget extends StatefulWidget {
   final bool matched;
   final Widget front;
   final VoidCallback onTap;
-  final Color backColor;        // theme deck color
-  final String backSymbol;      // theme deck icon/emoji
-  final double aspectRatio;     // width / height, <1.0 makes it taller
+  final Color backColor;
+  final String backSymbol;
+  final double aspectRatio;
 
   const GameCardWidget({
     super.key,

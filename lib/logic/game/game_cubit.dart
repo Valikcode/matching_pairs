@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:matching_pairs/core/constants/modes.dart'; // for getModeByName
 import 'package:matching_pairs/data/models/game_card_model.dart';
 import 'package:matching_pairs/data/models/mode_info.dart';
 import 'package:matching_pairs/logic/game/game_state.dart';
@@ -12,6 +13,13 @@ class GameCubit extends Cubit<GameState> {
   Timer? _timer;
   bool _busy = false;
 
+  // ENDLESS helpers
+  DateTime? _endAt;           // current timer "deadline"
+  int _matchedSinceAdd = 0;   // pairs since we last injected new cards
+  final _rng = Random();
+
+  bool get _isEndless => mode.mode.toLowerCase() == 'endless';
+
   GameCubit({required this.mode, required this.themeCubit}) : super(const GameState());
 
   void startGame() {
@@ -21,71 +29,79 @@ class GameCubit extends Cubit<GameState> {
       return;
     }
 
-    final rng = Random();
     final neededPairs = (mode.rows * mode.cols) ~/ 2;
+    final base = List<String>.from(themePack.symbols)..shuffle(_rng);
 
-    // 1) Shuffle the available symbols from the theme
-    final base = List<String>.from(themePack.symbols)..shuffle(rng);
-
-    // 2) Use each symbol at least once (up to neededPairs)
     final chosenPairs = <String>[];
-    final takeUnique = base.take(neededPairs);
-    chosenPairs.addAll(takeUnique);
-
-    // 3) If we still need more pairs, repeat symbols with replacement
+    chosenPairs.addAll(base.take(neededPairs));
     while (chosenPairs.length < neededPairs) {
-      chosenPairs.add(base[rng.nextInt(base.length)]);
+      chosenPairs.add(base[_rng.nextInt(base.length)]);
     }
 
-    // 4) Build the deck (pair per chosen symbol) and shuffle
     final allCards = <GameCard>[];
     var id = 0;
     for (final sym in chosenPairs) {
       allCards.add(GameCard(id: id++, symbolId: sym));
       allCards.add(GameCard(id: id++, symbolId: sym));
     }
-    allCards.shuffle(rng);
+    allCards.shuffle(_rng);
 
     _timer?.cancel();
+    _matchedSinceAdd = 0;
+
+    // initial seconds: 30 for endless; else whatever the mode says
+    final initialSeconds = _isEndless ? 30 : mode.time;
+
     emit(
       state.copyWith(
         cards: allCards,
         moves: 0,
         matches: 0,
         completed: false,
+        endedByTime: false,
         loading: false,
         timeLeft: 1.0,
-        secondsLeft: mode.time,
+        secondsLeft: initialSeconds,
         score: 0,
         streak: 0,
         multiplier: 1,
+        bestStreak: 0,
+        gridCols: mode.cols,
       ),
     );
 
-    if (mode.time > 0) _startTimer();
+    if (initialSeconds > 0) _startTimer(initialSeconds);
   }
 
-  void _startTimer() {
-    final total = mode.time;
-    final endAt = DateTime.now().add(Duration(seconds: total));
-
+  void _startTimer(int seconds) {
+    _endAt = DateTime.now().add(Duration(seconds: seconds));
     _timer?.cancel();
 
-    emit(state.copyWith(secondsLeft: total, timeLeft: 1.0));
+    emit(state.copyWith(secondsLeft: seconds, timeLeft: 1.0));
 
     _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       final now = DateTime.now();
+      final endAt = _endAt!;
       final remaining = endAt.isAfter(now) ? (endAt.difference(now).inMilliseconds / 1000).ceil() : 0;
+      // note: in endless, this is only a rough bar (base on first span)
+      final totalSpan = seconds;
+      final fraction = totalSpan > 0 ? (remaining / totalSpan).clamp(0.0, 1.0) : 1.0;
 
-      final fraction = total > 0 ? remaining / total : 1.0;
-
-      emit(state.copyWith(secondsLeft: remaining, timeLeft: fraction.clamp(0, 1)));
+      emit(state.copyWith(secondsLeft: remaining, timeLeft: fraction));
 
       if (remaining == 0) {
         timer.cancel();
-        emit(state.copyWith(completed: true));
+        emit(state.copyWith(completed: true, endedByTime: true));
       }
     });
+  }
+
+  void _extendTimeBySeconds(int add) {
+    if (_endAt == null) return;
+    _endAt = _endAt!.add(Duration(seconds: add));
+    final now = DateTime.now();
+    final remaining = _endAt!.isAfter(now) ? (_endAt!.difference(now).inMilliseconds / 1000).ceil() : 0;
+    emit(state.copyWith(secondsLeft: remaining));
   }
 
   void flipCard(int index) {
@@ -118,19 +134,33 @@ class GameCubit extends Cubit<GameState> {
       final totalPairs = cards.length ~/ 2;
 
       final newStreak = state.streak + 1;
+      final newBest = newStreak > state.bestStreak ? newStreak : state.bestStreak;
 
       final newMultiplier = newStreak < 2 ? 1 : newStreak.clamp(2, 5);
       final add = 50 * newMultiplier;
 
-      final completed = matchesAfter == totalPairs;
-
       var newScore = state.score + add;
+      bool completed = state.completed; // default carry-over
 
-      if (completed) {
-        // simple end bonuses
-        final timeBonus = state.secondsLeft * 2;
-        final gridBonus = totalPairs * 10;
-        newScore += timeBonus + gridBonus;
+      if (_isEndless) {
+        _extendTimeBySeconds(3);        // +3s per resolved pair
+        _matchedSinceAdd += 1;
+
+        if (_matchedSinceAdd >= 2) {
+          _matchedSinceAdd = 0;
+          _addPairs(cards, 2);          // re-add 2 pairs every 2 resolved
+        }
+
+        _maybeIncreaseGridByScore(newScore); // grow grid with score
+        // in endless, "completed" only becomes true when timer hits 0
+      } else {
+        completed = matchesAfter == totalPairs;
+        if (completed) {
+          final timeBonus = state.secondsLeft * 2; // your chosen rule
+          final gridBonus = totalPairs * 10;
+          newScore += timeBonus + gridBonus;
+          _timer?.cancel();
+        }
       }
 
       emit(
@@ -139,13 +169,13 @@ class GameCubit extends Cubit<GameState> {
           matches: matchesAfter,
           moves: state.moves + 1,
           completed: completed,
+          endedByTime: completed ? false : state.endedByTime,
           score: newScore,
           streak: newStreak,
+          bestStreak: newBest,
           multiplier: newMultiplier,
         ),
       );
-
-      if (completed) _timer?.cancel();
     } else {
       await Future.delayed(const Duration(milliseconds: 650));
       cards[idxA] = cards[idxA].hide();
@@ -155,7 +185,40 @@ class GameCubit extends Cubit<GameState> {
     _busy = false;
   }
 
-  List<GameCard> _revealedUnmatched(List<GameCard> cards) => cards.where((c) => c.isRevealed && !c.isMatched).toList();
+  void _addPairs(List<GameCard> cards, int pairCount) {
+    final themePack = themeCubit.state.selected;
+    if (themePack == null || themePack.symbols.isEmpty) return;
+
+    for (int i = 0; i < pairCount; i++) {
+      final sym = themePack.symbols[_rng.nextInt(themePack.symbols.length)];
+      final nextId = (cards.isEmpty ? 0 : (cards.map((c) => c.id).reduce(max) + 1));
+      cards.add(GameCard(id: nextId, symbolId: sym));
+      cards.add(GameCard(id: nextId + 1, symbolId: sym));
+    }
+    cards.shuffle(_rng);
+  }
+
+  void _maybeIncreaseGridByScore(int score) {
+    final easy = getModeByName('easy');    // ensure these keys match your modes.dart
+    final medium = getModeByName('medium');
+    final hard = getModeByName('hard');
+
+    int targetCols;
+    if (score >= 1000) {
+      targetCols = hard.cols;
+    } else if (score >= 500) {
+      targetCols = medium.cols;
+    } else {
+      targetCols = easy.cols;
+    }
+
+    if (state.gridCols != targetCols) {
+      emit(state.copyWith(gridCols: targetCols));
+    }
+  }
+
+  List<GameCard> _revealedUnmatched(List<GameCard> cards) =>
+      cards.where((c) => c.isRevealed && !c.isMatched).toList();
 
   @override
   Future<void> close() {

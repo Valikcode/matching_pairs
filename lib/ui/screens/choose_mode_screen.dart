@@ -107,9 +107,16 @@ class _ChooseModeScreenState extends State<ChooseModeScreen> {
                       itemCount: kGameModes.length,
                       itemBuilder: (context, index) {
                         final m = kGameModes[index];
-                        return ModeCard(
+                        // inside itemBuilder:
+                        return GameModeCard(
                           info: m,
-                          onTap: () => context.pushNamed(Routes.play.name, queryParameters: {'mode': m.mode}),
+                          onTap: () async {
+                            final updated = await context.pushNamed(
+                              Routes.play.name,
+                              queryParameters: {'mode': m.mode},
+                            );
+                            if (mounted && updated == true) setState(() {});
+                          },
                         );
                       },
                     );

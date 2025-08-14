@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:matching_pairs/data/local/highscore_store.dart';
 import 'package:matching_pairs/data/models/mode_info.dart';
 import 'dots_preview.dart';
 
-class ModeCard extends StatelessWidget {
+class GameModeCard extends StatelessWidget {
   final ModeInfo info;
   final VoidCallback onTap;
 
-  const ModeCard({super.key, required this.info, required this.onTap});
+  const GameModeCard({super.key, required this.info, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -50,12 +51,27 @@ class ModeCard extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 height: 40,
-                child: ElevatedButton(onPressed: onTap, child: const Text('Play'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colors.primary,
-                    foregroundColor: colors.onPrimary,
-                  ),
+                child: ElevatedButton(
+                  onPressed: onTap,
+                  child: const Text('Play'),
+                  style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: colors.onPrimary),
                 ),
+              ),
+              const SizedBox(height: 6),
+
+              FutureBuilder<int?>(
+                future: HighscoreStore.instance.getHighscore(info.title),
+                builder: (context, snapshot) {
+                  final style = theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurface.withOpacity(0.7),
+                    fontWeight: FontWeight.w500,
+                  );
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Text('High score: —', style: style);
+                  }
+                  final hs = snapshot.data;
+                  return Text(hs == null ? 'High score: —' : 'High score: $hs', style: style);
+                },
               ),
             ],
           ),
