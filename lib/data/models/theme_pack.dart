@@ -16,7 +16,6 @@ class ThemePack extends Equatable {
   });
 
   factory ThemePack.fromJson(Map<String, dynamic> json) {
-    // JSON uses keys: title, card_symbol, card_color{red,green,blue in 0..1}, symbols[]
     final title = (json['title'] as String?)?.trim() ?? 'Untitled';
     final color = _colorFromUnitRgb(json['card_color'] as Map<String, dynamic>?);
 
@@ -47,7 +46,6 @@ class ThemePack extends Equatable {
     double r = (m['red'] as num?)?.toDouble() ?? 0;
     double g = (m['green'] as num?)?.toDouble() ?? 0;
     double b = (m['blue'] as num?)?.toDouble() ?? 0;
-    // clamp 0..1 then map to 0..255
     int ri = (r.clamp(0, 1) * 255).round();
     int gi = (g.clamp(0, 1) * 255).round();
     int bi = (b.clamp(0, 1) * 255).round();

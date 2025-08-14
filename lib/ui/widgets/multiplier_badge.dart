@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:matching_pairs/core/constants/app_assets.dart';
 
 class MultiplierBadge extends StatelessWidget {
   final int multiplier;
@@ -14,7 +15,7 @@ class MultiplierBadge extends StatelessWidget {
       alignment: Alignment.center,
       children: [
         if (hasFire)
-          SizedBox(width: 48, height: 48, child: Lottie.asset('assets/lottie/fire.json', repeat: true, animate: true)),
+          SizedBox(width: 48, height: 48, child: Lottie.asset(AppAssets.fireLottie, repeat: true, animate: true)),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(

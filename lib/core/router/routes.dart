@@ -1,8 +1,7 @@
 enum Routes {
   home('/', 'home'),
   modes('/modes', 'modes'),
-  play('/play', 'play'),
-  results('/results', 'results');
+  play('/play', 'play');
 
   final String path;
   final String routeName;

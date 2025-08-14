@@ -4,16 +4,18 @@ class GameState {
   final List<GameCard> cards;
   final int moves;
   final int matches;
-  final bool completed;      // game ended (either by time or by clearing)
+  final bool completed;
   final bool loading;
-  final double timeLeft;     // 0..1
-  final int secondsLeft;     // whole seconds remaining
+  final double timeLeft;
+  final int secondsLeft;
   final int score;
-  final int streak;          // current streak
+  final int streak;
   final int multiplier;
-  final int bestStreak;      // longest streak this run
-  final int gridCols;        // dynamic grid cols (endless uses this)
-  final bool endedByTime;    // true if timer hit 0, false if all pairs matched
+  final int bestStreak;
+  final int gridCols;
+  final int gridRows;
+
+  final bool endedByTime;
 
   const GameState({
     this.cards = const [],
@@ -28,6 +30,7 @@ class GameState {
     this.multiplier = 1,
     this.bestStreak = 0,
     this.gridCols = 0,
+    this.gridRows = 0,
     this.endedByTime = false,
   });
 
@@ -44,6 +47,7 @@ class GameState {
     int? multiplier,
     int? bestStreak,
     int? gridCols,
+    int? gridRows,
     bool? endedByTime,
   }) {
     return GameState(
@@ -59,6 +63,7 @@ class GameState {
       multiplier: multiplier ?? this.multiplier,
       bestStreak: bestStreak ?? this.bestStreak,
       gridCols: gridCols ?? this.gridCols,
+      gridRows: gridRows ?? this.gridRows,
       endedByTime: endedByTime ?? this.endedByTime,
     );
   }

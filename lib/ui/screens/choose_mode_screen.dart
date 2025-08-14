@@ -95,19 +95,31 @@ class _ChooseModeScreenState extends State<ChooseModeScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final isWide = constraints.maxWidth > 640;
-                    final crossAxisCount = isWide ? 4 : 2;
+                    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+                    const minTileWidth = 180.0;
+                    final maxCols = (constraints.maxWidth / minTileWidth).floor().clamp(2, 6);
+                    final crossAxisCount =
+                        isLandscape ? maxCols : (constraints.maxWidth > 640 ? maxCols.clamp(3, 4) : 2);
+
+                    const spacing = 12.0;
+                    final totalSpacingW = spacing * (crossAxisCount - 1);
+                    final tileWidth = (constraints.maxWidth - totalSpacingW) / crossAxisCount;
+
+                    final minCardHeight = isLandscape ? 200.0 : 230.0;
+
+                    double childAspectRatio = tileWidth / minCardHeight;
+                    childAspectRatio = childAspectRatio.clamp(0.72, 1.25);
+
                     return GridView.builder(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: isWide ? 1.05 : 0.82,
+                        crossAxisSpacing: spacing,
+                        mainAxisSpacing: spacing,
+                        childAspectRatio: childAspectRatio,
                       ),
                       itemCount: kGameModes.length,
                       itemBuilder: (context, index) {
                         final m = kGameModes[index];
-                        // inside itemBuilder:
                         return GameModeCard(
                           info: m,
                           onTap: () async {

@@ -3,7 +3,6 @@ import 'package:matching_pairs/core/router/routes.dart';
 import 'package:matching_pairs/ui/screens/welcome_screen.dart';
 import 'package:matching_pairs/ui/screens/choose_mode_screen.dart';
 import 'package:matching_pairs/ui/screens/play_screen.dart';
-import 'package:matching_pairs/ui/screens/results_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   debugLogDiagnostics: true,
@@ -18,6 +17,5 @@ final GoRouter appRouter = GoRouter(
         return PlayScreen(mode: mode);
       },
     ),
-    GoRoute(name: Routes.results.routeName, path: Routes.results.path, builder: (ctx, st) => ResultsScreen()),
   ],
 );

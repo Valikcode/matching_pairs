@@ -51,7 +51,6 @@ class ThemeChoiceChip extends StatelessWidget {
             pack.title,
             style: TextStyle(
               color: labelColor,
-              // keep the same weight so width doesn't shift
               fontWeight: FontWeight.w600,
             ),
           ),

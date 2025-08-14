@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class ShakingCountdownText extends StatefulWidget {
   final int secondsLeft;
-  final double fraction; // 1.0 = full, 0.0 = empty
+  final double fraction;
 
   const ShakingCountdownText({super.key, required this.secondsLeft, required this.fraction});
 
